@@ -1,6 +1,7 @@
 -- restaurants 표 정의 (지금 적용된 최종 모습). Supabase 프로젝트 day03-1에 이미 적용했다.
 --   2026-10-16 create_restaurants         표·제약·RLS 만들기 (처음에는 anon도 보기·추가·삭제 허용)
 --   2026-10-16 restaurants_require_login  로그인한 사람(authenticated)만 허용으로 변경, anon 권한 회수
+--   2026-10-16 restaurants_add_area_address  지역(area)·주소(address) 열 추가 (아래 create table에는 합쳐서 적었다)
 -- 이미 적용돼 있으니 다시 실행하지 말고, 바꿀 때는 마이그레이션으로 바꾼 뒤 이 파일도 맞춘다.
 -- 규칙(글자 수·별점 범위)을 바꾸면 index.html의 LIMITS / validateField도 함께 고칠 것.
 
@@ -14,7 +15,12 @@ create table public.restaurants (
     constraint restaurants_rating_range check (rating between 1 and 5),
   review text not null default ''
     constraint restaurants_review_len check (char_length(review) <= 100),
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- 카드에 마우스를 올리면 나오는 지도에 쓴다. 비워 두면 ''
+  area text not null default ''
+    constraint restaurants_area_len check (char_length(area) <= 30),
+  address text not null default ''
+    constraint restaurants_address_len check (char_length(address) <= 100)
 );
 
 create index restaurants_created_at_idx on public.restaurants (created_at desc);
