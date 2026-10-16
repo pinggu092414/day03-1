@@ -30,6 +30,7 @@ Windows에서 winget으로 Git을 설치했기 때문에, 이미 열려 있던 �
 - **비밀 값 경계.** 브라우저 코드(`index.html`)에는 Supabase URL과 공개(publishable) 키만 둔다. service_role 키는 어디에도 두지 않는다. OpenRouter 키는 Supabase Secrets `openrouter_apl_key`에만 있고 Edge Function이 읽는다. 이름은 사용자가 쓴 그대로이며 "api"의 오타일 수 있어서, 함수는 `openrouter_apl_key`를 먼저 읽고 없으면 `openrouter_api_key`를 읽는다. 실제 호출로 키가 동작하는 것을 확인했다.
 - **Edge Function은 `verify_jwt`를 끄고 배포한다.** 누구나 호출할 수 있으므로 입력 길이를 제한하고 한줄평 생성 외의 일은 하지 않는다. 모델을 `nvidia/nemotron-3-ultra-550b-a55b:free` → `google/gemma-4-26b-a4b-it:free` → `google/gemma-4-31b-it:free` 순서로 시도하고, 결과가 40자를 넘지 않도록 함수 쪽에서 보장한다. 모델 ID 3개는 OpenRouter 목록에 있는 것을 확인했다. 무료 모델이라 `429`·빈 응답·시간 초과가 잦아서(연속 8번 호출 중 1번 실패), 한 바퀴를 다 실패하면 한 번 더 돌고 전체를 35초로 끊는다. 그래도 실패하면 화면은 "직접 적어 주세요" 안내만 보여 준다. 함수 파일을 고쳐도 자동 반영되지 않으니 Supabase에 다시 배포하고(`verify_jwt: false` 유지), 실패 원인은 Supabase 로그의 `function_logs`에서 본다.
 - **사용자 입력은 글자 그대로 그린다.** 누구나 글을 쓸 수 있는 앱이라, 이름·메뉴·한줄평을 `innerHTML`로 넣지 않고 텍스트로 넣는다(`textContent` 등).
+- **디자인은 `DESIGN-mobbin.md`(저장소 밖, 사용자 Downloads 폴더)를 따른다.** 흰 바탕·잉크 `#141414` 모노크롬, 알약 버튼, 24px 카드, 그림자 없음. 처음의 주황색 포인트는 없앴다. 색은 `index.html`의 `:root` 변수로 모여 있고, 붉은색(`--error`)은 입력 오류에만 쓴다. Saans 글꼴은 없어서 시스템 한글 글꼴로 대체했다(가변 굵기 650/456/300은 가변 글꼴일 때만 먹는다). 새 화면을 만들 때도 이 규칙을 따르고 주황색이나 다른 강조색을 다시 넣지 않는다.
 - **하지 않을 것:** 로그인, 수정, 사진 업로드, 검색. 요청이 없으면 넣지 않는다.
 
 ## 배포
