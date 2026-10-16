@@ -104,11 +104,16 @@
   }
   .btn-primary { min-width: 120px; background: var(--accent); color: #fff; }
   .btn-primary:hover { background: var(--accent-hover); }
+  .btn-primary:disabled { background: #e7a98c; cursor: progress; }
 
   .status { min-height: 1.5rem; margin: 10px 0 0; font-size: 0.9375rem; color: var(--accent); text-align: right; }
   .status.is-error { color: var(--danger); }
 
   .banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
     margin: 0 0 16px;
     padding: 10px 12px;
     border: 1px solid #f3c1c1;
@@ -116,6 +121,18 @@
     background: #fff0f0;
     color: var(--danger);
     font-size: 0.9375rem;
+  }
+  .banner[hidden] { display: none; }
+  .btn-retry {
+    min-height: 36px;
+    padding: 0 12px;
+    border: 1px solid #e9b4b4;
+    border-radius: 8px;
+    background: #fff;
+    color: var(--danger);
+    font: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
   }
 
   .list-section { margin-top: 28px; }
@@ -172,6 +189,7 @@
     cursor: pointer;
   }
   .btn-delete:hover { border-color: var(--danger); color: var(--danger); }
+  .btn-delete:disabled { opacity: 0.5; cursor: progress; }
 
   :focus-visible { outline: 3px solid var(--star); outline-offset: 2px; }
 
@@ -184,11 +202,14 @@
 <main class="page">
   <header>
     <h1>우리 동네 숨은 맛집</h1>
-    <p class="sub">가본 맛집을 잊지 않게 기록해 두세요.</p>
+    <p class="sub">가본 맛집을 기록하고, 동네 사람들과 함께 보세요.</p>
   </header>
 
   <noscript><p class="banner">이 앱은 JavaScript가 켜져 있어야 동작해요.</p></noscript>
-  <p id="storage-error" class="banner" role="alert" hidden></p>
+  <div id="banner" class="banner" role="alert" hidden>
+    <span id="banner-text"></span>
+    <button type="button" id="banner-retry" class="btn-retry">다시 불러오기</button>
+  </div>
 
   <section class="panel" aria-labelledby="form-title">
     <h2 id="form-title">맛집 추가</h2>
@@ -225,7 +246,7 @@
       </div>
 
       <div class="actions">
-        <button type="submit" class="btn btn-primary">추가</button>
+        <button type="submit" id="submit-btn" class="btn btn-primary">추가</button>
       </div>
       <p id="form-status" class="status" role="status"></p>
     </form>
@@ -233,6 +254,7 @@
 
   <section class="list-section" aria-labelledby="list-title">
     <h2 id="list-title">등록된 맛집<span id="total" class="count-total"></span></h2>
+    <p id="loading" class="empty">불러오는 중…</p>
     <p id="empty" class="empty" hidden>아직 등록된 맛집이 없어요.<br>위에서 첫 맛집을 추가해 보세요.</p>
     <ul id="list" class="cards"></ul>
   </section>
@@ -242,67 +264,65 @@
 (() => {
   'use strict';
 
-  const STORAGE_KEY = 'restaurants';
+  const SUPABASE_URL = 'https://leppiltvaejxpodopijj.supabase.co';
+  // 공개(publishable) 키라서 브라우저 코드에 있어도 된다. 접근 제한은 restaurants 표의 RLS가 맡는다.
+  const SUPABASE_KEY = 'sb_publishable_UThOo1wVFHFNK_HW9kOxsg_WCUzS--i';
+  const REQUEST_TIMEOUT_MS = 10000;
   const LIMITS = { name: 30, menu: 30, review: 100 };
 
-  // ---------- 저장소 ----------
-  // 2단계에서 이 구역(listRestaurants / addRestaurant / removeRestaurant)만 Supabase 호출로 바꾼다.
-  // 기록은 restaurants 표와 같은 열(id, name, menu, rating, review, created_at)로 저장한다.
+  // ---------- 저장소 (Supabase restaurants 표) ----------
+  // 이 구역만 저장소와 이야기한다. 화면 쪽 코드는 list/add/removeRestaurant만 부른다.
 
-  function readStore() {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    let data;
-    try { data = JSON.parse(raw); } catch { return []; }
-    if (!Array.isArray(data)) return [];
-    return data
-      .filter((r) => r && typeof r.id === 'string' && typeof r.name === 'string'
-        && Number.isInteger(r.rating) && r.rating >= 1 && r.rating <= 5
-        && typeof r.created_at === 'string')
-      .map((r) => ({
-        id: r.id,
-        name: r.name,
-        menu: typeof r.menu === 'string' ? r.menu : '',
-        rating: r.rating,
-        review: typeof r.review === 'string' ? r.review : '',
-        created_at: r.created_at,
-      }));
+  async function api(path, { method = 'GET', body, prefer } = {}) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      const headers = { apikey: SUPABASE_KEY };
+      if (body) headers['Content-Type'] = 'application/json';
+      if (prefer) headers.Prefer = prefer;
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error(`Supabase ${res.status}`);
+      return res.status === 204 ? null : await res.json();
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
-  function writeStore(list) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  }
-
-  function newId() {
-    return (window.crypto && crypto.randomUUID)
-      ? crypto.randomUUID()
-      : Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
-  }
-
+  // 새 기록이 맨 위: 정렬은 서버가 created_at 내림차순으로 해서 준다
   async function listRestaurants() {
-    return readStore().sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0));
+    return api('restaurants?select=id,name,menu,rating,review,created_at&order=created_at.desc');
   }
 
+  // id와 created_at은 표가 채운다
   async function addRestaurant({ name, menu, rating, review }) {
-    const record = { id: newId(), name, menu, rating, review, created_at: new Date().toISOString() };
-    const all = readStore();
-    all.unshift(record);
-    writeStore(all);
-    return record;
+    const rows = await api('restaurants', {
+      method: 'POST',
+      body: { name, menu, rating, review },
+      prefer: 'return=representation',
+    });
+    return rows[0];
   }
 
   async function removeRestaurant(id) {
-    writeStore(readStore().filter((r) => r.id !== id));
+    await api(`restaurants?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' });
   }
 
   // ---------- 화면 요소 ----------
   const $ = (id) => document.getElementById(id);
   const form = $('add-form');
+  const submitBtn = $('submit-btn');
   const list = $('list');
+  const loadingEl = $('loading');
   const emptyMsg = $('empty');
   const totalEl = $('total');
   const statusEl = $('form-status');
-  const bannerEl = $('storage-error');
+  const bannerEl = $('banner');
+  const bannerText = $('banner-text');
 
   const fields = {};
   for (const key of ['name', 'menu', 'rating', 'review']) {
@@ -377,7 +397,7 @@
   }
 
   function setBanner(message) {
-    bannerEl.textContent = message;
+    bannerText.textContent = message;
     bannerEl.hidden = !message;
   }
 
@@ -410,10 +430,12 @@
     del.type = 'button';
     del.setAttribute('aria-label', `${r.name} 삭제`);
     del.addEventListener('click', async () => {
+      del.disabled = true;
       try {
         await removeRestaurant(r.id);
       } catch {
-        setBanner('삭제하지 못했어요. 브라우저의 저장 기능을 확인해 주세요.');
+        del.disabled = false;
+        setBanner('삭제하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.');
         return;
       }
       await refresh();
@@ -424,22 +446,41 @@
     return li;
   }
 
+  // 응답이 겹쳐 돌아와도 가장 마지막에 보낸 요청의 결과만 그린다
+  let refreshSeq = 0;
   async function refresh() {
-    let items = [];
+    const seq = ++refreshSeq;
+    let items = null;
     try {
       items = await listRestaurants();
-      setBanner('');
     } catch {
-      setBanner('이 브라우저에서는 기록을 불러올 수 없어요. 브라우저의 저장 기능이 꺼져 있는지 확인해 주세요.');
+      items = null;
     }
+    if (seq !== refreshSeq) return;
+
+    loadingEl.hidden = true;
+    if (items === null) {
+      setBanner('맛집 목록을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.');
+      emptyMsg.hidden = true; // 못 불러온 것을 "없다"고 보여 주지 않는다
+      return;
+    }
+    setBanner('');
     list.replaceChildren(...items.map(renderCard));
     emptyMsg.hidden = items.length > 0;
     totalEl.textContent = items.length ? `${items.length}곳` : '';
   }
 
+  $('banner-retry').addEventListener('click', refresh);
+
+  // 다른 사람이 올린 기록이 보이도록, 화면으로 돌아올 때마다 다시 불러온다
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refresh();
+  });
+
   // ---------- 추가 ----------
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
+    if (submitBtn.disabled) return;
     const values = readForm();
 
     let firstInvalid = null;
@@ -454,21 +495,21 @@
       return;
     }
 
+    submitBtn.disabled = true;
+    submitBtn.textContent = '추가 중…';
     try {
       await addRestaurant(values);
     } catch {
-      setStatus('저장하지 못했어요. 브라우저의 저장 공간을 확인해 주세요.', true);
+      setStatus('저장하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.', true);
       return;
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = '추가';
     }
     form.reset();
     for (const key of Object.keys(fields)) { showFieldError(key, ''); updateCount(key); }
     setStatus('맛집을 추가했어요.');
     await refresh();
-  });
-
-  // 다른 탭에서 바뀌어도 목록을 맞춘다
-  window.addEventListener('storage', (event) => {
-    if (event.key === STORAGE_KEY || event.key === null) refresh();
   });
 
   refresh();
