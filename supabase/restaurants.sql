@@ -1,4 +1,7 @@
--- restaurants 표 정의. 2026-10-16에 Supabase 프로젝트 day03-1에 마이그레이션 create_restaurants로 이미 적용했다.
+-- restaurants 표 정의 (지금 적용된 최종 모습). Supabase 프로젝트 day03-1에 이미 적용했다.
+--   2026-10-16 create_restaurants         표·제약·RLS 만들기 (처음에는 anon도 보기·추가·삭제 허용)
+--   2026-10-16 restaurants_require_login  로그인한 사람(authenticated)만 허용으로 변경, anon 권한 회수
+-- 이미 적용돼 있으니 다시 실행하지 말고, 바꿀 때는 마이그레이션으로 바꾼 뒤 이 파일도 맞춘다.
 -- 규칙(글자 수·별점 범위)을 바꾸면 index.html의 LIMITS / validateField도 함께 고칠 것.
 
 create table public.restaurants (
@@ -18,22 +21,23 @@ create index restaurants_created_at_idx on public.restaurants (created_at desc);
 
 alter table public.restaurants enable row level security;
 
--- 로그인 없이 누구나 보기·추가·삭제만 가능. 수정(update) 정책은 만들지 않는다.
-create policy "anyone can view restaurants"
+-- 로그인한 사람(authenticated)만 보기·추가·삭제. 로그인하지 않은 사람(anon)은 아무것도 못 한다.
+-- 수정(update) 정책은 만들지 않는다.
+create policy "signed-in users can view restaurants"
   on public.restaurants for select
-  to anon, authenticated
+  to authenticated
   using (true);
 
-create policy "anyone can add restaurants"
+create policy "signed-in users can add restaurants"
   on public.restaurants for insert
-  to anon, authenticated
+  to authenticated
   with check (true);
 
-create policy "anyone can delete restaurants"
+create policy "signed-in users can delete restaurants"
   on public.restaurants for delete
-  to anon, authenticated
+  to authenticated
   using (true);
 
 -- RLS가 막지 못하는 권한(truncate 등)까지 최소화
 revoke all on public.restaurants from anon, authenticated;
-grant select, insert, delete on public.restaurants to anon, authenticated;
+grant select, insert, delete on public.restaurants to authenticated;

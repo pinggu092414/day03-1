@@ -61,6 +61,8 @@
     color: #fff;
   }
   .logomark svg { width: 26px; height: 26px; }
+  .hero-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+  .hero-top .logomark { margin-bottom: 0; }
   h1 {
     margin: 0 0 16px;
     font-size: clamp(2.25rem, 9vw, 3.5rem);
@@ -94,7 +96,7 @@
   .opt { margin-left: 8px; color: var(--muted); font-size: 0.75rem; font-weight: 456; }
 
   /* 입력칸: 테두리 없이 옅은 회색 채움. 포커스 때만 잉크색 링 */
-  input[type="text"], select {
+  input[type="text"], input[type="email"], input[type="password"], select {
     display: block;
     width: 100%;
     min-height: 52px;
@@ -113,9 +115,9 @@
     background-repeat: no-repeat;
     background-position: right 16px center;
   }
-  input[type="text"]:focus, select:focus { outline: 2px solid var(--ink); outline-offset: 0; }
-  input[type="text"][aria-invalid="true"], select[aria-invalid="true"],
-  input[type="text"][aria-invalid="true"]:focus, select[aria-invalid="true"]:focus { outline: 2px solid var(--error); outline-offset: 0; }
+  input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus, select:focus { outline: 2px solid var(--ink); outline-offset: 0; }
+  input[aria-invalid="true"], select[aria-invalid="true"],
+  input[aria-invalid="true"]:focus, select[aria-invalid="true"]:focus { outline: 2px solid var(--error); outline-offset: 0; }
 
   .meta {
     display: flex;
@@ -240,6 +242,61 @@
   .btn-delete:hover:not(:disabled) { background: var(--canvas-soft); }
   .btn-delete:disabled { opacity: 0.5; cursor: progress; }
 
+  .btn.btn-sm { min-height: 40px; padding: 0 20px; font-size: 0.875rem; }
+
+  /* 로그인 상태에 따라 바뀌는 상단 버튼과 로그인 안내 */
+  .auth-actions { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .auth-actions[hidden] { display: none; }
+  .user-chip {
+    max-width: 8.5em;
+    overflow: hidden;
+    padding: 6px 14px;
+    border-radius: var(--r-full);
+    background: var(--canvas-soft);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .gate { padding: 48px 24px; border-radius: var(--r-md); background: var(--canvas-soft); text-align: center; }
+  .gate h2 { margin-bottom: 8px; }
+  .gate-sub { margin: 0 0 24px; color: var(--muted); }
+  .gate-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .dialog-switch { margin: 16px 0 0; color: var(--muted); font-size: 0.875rem; text-align: center; }
+  .link-btn { padding: 0; border: 0; background: none; color: var(--ink); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+
+  /* 회원가입 창 */
+  .dialog {
+    width: min(480px, calc(100% - 32px));
+    max-height: calc(100vh - 32px);
+    padding: 0;
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-md);
+    background: var(--canvas);
+    color: var(--ink);
+    overflow: auto;
+  }
+  .dialog::backdrop { background: rgba(20, 20, 20, 0.45); }
+  .dialog form { padding: 24px; }
+  .dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .dialog-head h2 { margin: 0; }
+  .dialog-sub { margin: 0 0 24px; color: var(--muted); font-size: 0.9375rem; }
+  .btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-full);
+    background: var(--canvas);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .btn-icon:hover { background: var(--canvas-soft); }
+  body:has(dialog[open]) { overflow: hidden; }
+
   /* 맨 아래: 잉크색 띠, 위쪽 모서리만 둥글게 */
   .footer {
     padding: 48px 16px 56px;
@@ -258,19 +315,30 @@
     .panel { padding: 20px 16px; }
     .card { padding: 20px 16px; }
     .actions .btn { flex: 1; padding: 0 12px; }
+    .dialog form { padding: 20px 16px; }
   }
 </style>
 </head>
 <body>
 <main class="page">
   <header class="hero">
-    <div class="logomark" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M6 3v5a2.5 2.5 0 0 0 5 0V3"/>
-        <path d="M8.5 3v6"/>
-        <path d="M8.5 10.5V21"/>
-        <path d="M17 21V3c-2.1 1.5-3.2 4-3.2 6.8 0 2.3 1.1 3.7 3.2 3.7"/>
-      </svg>
+    <div class="hero-top">
+      <div class="logomark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 3v5a2.5 2.5 0 0 0 5 0V3"/>
+          <path d="M8.5 3v6"/>
+          <path d="M8.5 10.5V21"/>
+          <path d="M17 21V3c-2.1 1.5-3.2 4-3.2 6.8 0 2.3 1.1 3.7 3.2 3.7"/>
+        </svg>
+      </div>
+      <div id="auth-out" class="auth-actions" hidden>
+        <button type="button" id="login-open" class="btn btn-secondary btn-sm">로그인</button>
+        <button type="button" id="signup-open" class="btn btn-primary btn-sm">회원가입</button>
+      </div>
+      <div id="auth-in" class="auth-actions" hidden>
+        <span id="user-chip" class="user-chip"></span>
+        <button type="button" id="logout-btn" class="btn btn-secondary btn-sm">로그아웃</button>
+      </div>
     </div>
     <h1>우리 동네 숨은 맛집.</h1>
     <p class="sub">가본 맛집을 기록하고, 동네 사람들과 함께 보세요.</p>
@@ -282,6 +350,17 @@
     <button type="button" id="banner-retry" class="btn-retry">다시 불러오기</button>
   </div>
 
+  <section id="gate" class="gate" hidden aria-labelledby="gate-title">
+    <h2 id="gate-title">로그인이 필요해요.</h2>
+    <p id="gate-sub" class="gate-sub"></p>
+    <div class="gate-actions">
+      <button type="button" id="gate-login" class="btn btn-primary">로그인</button>
+      <button type="button" id="gate-signup" class="btn btn-secondary">회원가입</button>
+    </div>
+  </section>
+
+  <!-- 로그인한 사람에게만 보인다 -->
+  <div id="app" hidden>
   <section class="panel" aria-labelledby="form-title">
     <h2 id="form-title">맛집 추가</h2>
     <form id="add-form" novalidate>
@@ -330,6 +409,7 @@
     <p id="empty" class="empty" hidden>아직 등록된 맛집이 없어요.<br>위에서 첫 맛집을 추가해 보세요.</p>
     <ul id="list" class="cards"></ul>
   </section>
+  </div>
 </main>
 
 <footer class="footer">
@@ -338,6 +418,90 @@
     <p class="footer-note">가본 맛집을 잊지 않게 기록하고, 동네 사람들과 함께 봐요.</p>
   </div>
 </footer>
+
+<dialog id="login-dialog" class="dialog" aria-labelledby="login-title">
+  <form id="login-form" novalidate>
+    <div class="dialog-head">
+      <h2 id="login-title">로그인</h2>
+      <button type="button" id="login-close" class="btn-icon" aria-label="닫기">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <p class="dialog-sub">가입한 이메일과 비밀번호를 입력해 주세요.</p>
+
+    <div class="field">
+      <label for="li-email">이메일</label>
+      <input id="li-email" type="email" autocomplete="email" inputmode="email" aria-describedby="li-email-error">
+      <div class="meta"><span id="li-email-error" class="error"></span></div>
+    </div>
+
+    <div class="field">
+      <label for="li-password">비밀번호</label>
+      <input id="li-password" type="password" autocomplete="current-password" aria-describedby="li-password-error">
+      <div class="meta"><span id="li-password-error" class="error"></span></div>
+    </div>
+
+    <div class="actions">
+      <button type="button" id="login-cancel" class="btn btn-secondary">취소</button>
+      <button type="submit" id="login-submit" class="btn btn-primary">로그인</button>
+    </div>
+    <p id="login-status" class="status" role="status"></p>
+    <p class="dialog-switch">아직 계정이 없나요? <button type="button" id="login-to-signup" class="link-btn">회원가입</button></p>
+  </form>
+</dialog>
+
+<dialog id="signup-dialog" class="dialog" aria-labelledby="signup-title">
+  <form id="signup-form" novalidate>
+    <div class="dialog-head">
+      <h2 id="signup-title">회원가입</h2>
+      <button type="button" id="signup-close" class="btn-icon" aria-label="닫기">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+
+    <div id="signup-fields">
+      <p class="dialog-sub">이메일과 비밀번호로 가입해요.</p>
+
+      <div class="field">
+        <label for="su-email">이메일<span class="req">필수</span></label>
+        <input id="su-email" type="email" autocomplete="email" inputmode="email" aria-describedby="su-email-error">
+        <div class="meta"><span id="su-email-error" class="error"></span></div>
+      </div>
+
+      <div class="field">
+        <label for="su-nickname">닉네임<span class="req">필수</span></label>
+        <input id="su-nickname" type="text" autocomplete="nickname" aria-describedby="su-nickname-error su-nickname-count">
+        <div class="meta"><span id="su-nickname-error" class="error"></span><span id="su-nickname-count" class="count">0/12</span></div>
+      </div>
+
+      <div class="field">
+        <label for="su-password">비밀번호<span class="req">필수</span><span class="opt">8자 이상</span></label>
+        <input id="su-password" type="password" autocomplete="new-password" aria-describedby="su-password-error">
+        <div class="meta"><span id="su-password-error" class="error"></span></div>
+      </div>
+
+      <div class="field">
+        <label for="su-password2">비밀번호 확인<span class="req">필수</span></label>
+        <input id="su-password2" type="password" autocomplete="new-password" aria-describedby="su-password2-error">
+        <div class="meta"><span id="su-password2-error" class="error"></span></div>
+      </div>
+
+      <div class="actions">
+        <button type="button" id="signup-cancel" class="btn btn-secondary">취소</button>
+        <button type="submit" id="signup-submit" class="btn btn-primary">가입하기</button>
+      </div>
+      <p id="signup-status" class="status" role="status"></p>
+      <p class="dialog-switch">이미 계정이 있나요? <button type="button" id="signup-to-login" class="link-btn">로그인</button></p>
+    </div>
+
+    <div id="signup-done" hidden>
+      <p id="signup-done-text" class="dialog-sub"></p>
+      <div class="actions">
+        <button type="button" id="signup-done-btn" class="btn btn-primary">확인</button>
+      </div>
+    </div>
+  </form>
+</dialog>
 
 <script>
 (() => {
@@ -349,14 +513,123 @@
   const REQUEST_TIMEOUT_MS = 10000;
   const LIMITS = { name: 30, menu: 30, review: 100 };
 
-  // ---------- 저장소 (Supabase restaurants 표) ----------
-  // 이 구역만 저장소와 이야기한다. 화면 쪽 코드는 list/add/removeRestaurant만 부른다.
+  // ---------- 로그인 세션 ----------
+  // restaurants 표는 로그인한 사람만 읽고 쓸 수 있다(RLS). 세션은 이 브라우저의 localStorage에 둔다.
+  const SESSION_KEY = 'hidden-eats-session';
+  const AUTH_TIMEOUT_MS = 15000;
+  let session = null; // { access_token, refresh_token, expires_at(초), email, nickname }
 
-  async function api(path, { method = 'GET', body, prefer } = {}) {
+  function loadSavedSession() {
+    try {
+      const s = JSON.parse(localStorage.getItem(SESSION_KEY));
+      if (s && typeof s.access_token === 'string' && typeof s.refresh_token === 'string' && Number.isFinite(s.expires_at)) {
+        return {
+          access_token: s.access_token,
+          refresh_token: s.refresh_token,
+          expires_at: s.expires_at,
+          email: String(s.email || ''),
+          nickname: String(s.nickname || ''),
+        };
+      }
+    } catch { /* 저장소를 못 쓰거나 값이 깨진 경우 */ }
+    return null;
+  }
+
+  function setSession(next) {
+    session = next;
+    try {
+      if (next) localStorage.setItem(SESSION_KEY, JSON.stringify(next));
+      else localStorage.removeItem(SESSION_KEY);
+    } catch { /* 저장을 못 해도 이번 방문 동안은 동작한다 */ }
+  }
+
+  // 로그인·가입·토큰 갱신 응답에서 필요한 것만 뽑는다
+  function sessionFromAuth(body) {
+    const user = body.user || {};
+    return {
+      access_token: body.access_token,
+      refresh_token: body.refresh_token,
+      expires_at: body.expires_at || Math.floor(Date.now() / 1000) + (body.expires_in || 3600),
+      email: user.email || (session && session.email) || '',
+      nickname: (user.user_metadata && user.user_metadata.nickname) || (session && session.nickname) || '',
+    };
+  }
+
+  const authRequired = () => Object.assign(new Error('login required'), { authRequired: true });
+
+  // Supabase Auth(/auth/v1) 요청. 실패하면 status와 code(error_code)를 달아 던진다.
+  async function authFetch(path, { method = 'POST', body, token } = {}) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), AUTH_TIMEOUT_MS);
+    try {
+      const headers = { apikey: SUPABASE_KEY };
+      if (body) headers['Content-Type'] = 'application/json';
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/${path}`, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      });
+      let data = {};
+      try { data = await res.json(); } catch { /* 본문이 없는 응답 */ }
+      if (!res.ok) {
+        const err = new Error(`auth ${res.status}`);
+        err.status = res.status;
+        err.code = String(data.error_code || data.code || data.error || '');
+        throw err;
+      }
+      return data;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  // 갱신 토큰은 한 번만 쓸 수 있어서, 동시에 여러 요청이 와도 갱신은 한 번만 보낸다
+  let refreshing = null;
+  function refreshSession() {
+    if (!refreshing) {
+      refreshing = authFetch('token?grant_type=refresh_token', { body: { refresh_token: session.refresh_token } })
+        .then((body) => { setSession(sessionFromAuth(body)); })
+        .finally(() => { refreshing = null; });
+    }
+    return refreshing;
+  }
+
+  // 갱신이 거절되면(4xx) 로그인이 풀린 것이다. 네트워크 오류·서버 오류는 그대로 던져서 다시 시도하게 한다.
+  async function refreshOrSignOut() {
+    try {
+      await refreshSession();
+    } catch (err) {
+      if (err.status && err.status < 500) {
+        signOutLocal('로그인이 풀렸어요. 다시 로그인해 주세요.');
+        throw authRequired();
+      }
+      throw err;
+    }
+  }
+
+  async function getAccessToken() {
+    if (!session) throw authRequired();
+    if (session.expires_at - 60 < Date.now() / 1000) await refreshOrSignOut();
+    if (!session) throw authRequired();
+    return session.access_token;
+  }
+
+  function signOutLocal(note = '') {
+    setSession(null);
+    updateAuthView(note);
+  }
+
+  // ---------- 저장소 (Supabase restaurants 표) ----------
+  // 이 구역만 표와 이야기한다. 화면 쪽 코드는 list/add/removeRestaurant만 부른다.
+
+  async function api(path, { method = 'GET', body, prefer } = {}, retried = false) {
+    const token = await getAccessToken();
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
-      const headers = { apikey: SUPABASE_KEY };
+      const headers = { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}` };
       if (body) headers['Content-Type'] = 'application/json';
       if (prefer) headers.Prefer = prefer;
       const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
@@ -365,6 +638,15 @@
         body: body ? JSON.stringify(body) : undefined,
         signal: controller.signal,
       });
+      if (res.status === 401) {
+        // 토큰이 만료·폐기된 경우: 한 번 갱신해서 다시 시도하고, 그래도 안 되면 로그인 전으로 돌아간다
+        if (retried) {
+          signOutLocal('로그인이 풀렸어요. 다시 로그인해 주세요.');
+          throw authRequired();
+        }
+        await refreshOrSignOut();
+        return api(path, { method, body, prefer }, true);
+      }
       if (!res.ok) throw new Error(`Supabase ${res.status}`);
       return res.status === 204 ? null : await res.json();
     } finally {
@@ -537,7 +819,8 @@
       del.disabled = true;
       try {
         await removeRestaurant(r.id);
-      } catch {
+      } catch (err) {
+        if (err.authRequired) return;
         del.disabled = false;
         setBanner('삭제하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.');
         return;
@@ -557,7 +840,8 @@
     let items = null;
     try {
       items = await listRestaurants();
-    } catch {
+    } catch (err) {
+      if (err.authRequired) return; // 로그인 전 화면으로 돌아갔다
       items = null;
     }
     if (seq !== refreshSeq) return;
@@ -578,7 +862,7 @@
 
   // 다른 사람이 올린 기록이 보이도록, 화면으로 돌아올 때마다 다시 불러온다
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') refresh();
+    if (document.visibilityState === 'visible' && session) refresh();
   });
 
   // ---------- 추가 ----------
@@ -603,8 +887,8 @@
     submitBtn.textContent = '추가 중…';
     try {
       await addRestaurant(values);
-    } catch {
-      setStatus('저장하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.', true);
+    } catch (err) {
+      if (!err.authRequired) setStatus('저장하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.', true);
       return;
     } finally {
       submitBtn.disabled = false;
@@ -651,7 +935,363 @@
     }
   });
 
-  refresh();
+  // ---------- 회원가입 (Supabase Auth) ----------
+  // 메일 확인 없이 바로 가입되는 설정이면, 돌려받은 세션으로 바로 로그인한다.
+  const NICKNAME_MAX = 12;
+  const NICKNAME_MIN = 2;
+  const PASSWORD_MIN = 8;
+  const PASSWORD_MAX_BYTES = 72; // 인증 서버가 받는 비밀번호 최대 길이(바이트)
+  const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  const signupDialog = $('signup-dialog');
+  const signupForm = $('signup-form');
+  const signupSubmit = $('signup-submit');
+  const signupStatus = $('signup-status');
+  const signupKeys = ['email', 'nickname', 'password', 'password2'];
+  const su = {};
+  for (const key of signupKeys) {
+    su[key] = { input: $('su-' + key), error: $('su-' + key + '-error'), count: $('su-' + key + '-count') };
+  }
+
+  function readSignup() {
+    return {
+      email: su.email.input.value.trim(),
+      nickname: su.nickname.input.value.trim(),
+      password: su.password.input.value, // 비밀번호는 다듬지 않는다
+      password2: su.password2.input.value,
+    };
+  }
+
+  function validateSignupField(key, v) {
+    if (key === 'email') {
+      if (!v.email) return '이메일을 입력해 주세요.';
+      if (v.email.length > 254 || !EMAIL_PATTERN.test(v.email)) return '이메일 형식을 확인해 주세요.';
+    } else if (key === 'nickname') {
+      const n = charLength(v.nickname);
+      if (n === 0) return '닉네임을 입력해 주세요.';
+      if (n < NICKNAME_MIN) return `닉네임은 ${NICKNAME_MIN}자 이상 적어 주세요.`;
+      if (n > NICKNAME_MAX) return `닉네임은 ${NICKNAME_MAX}자 이하로 적어 주세요.`;
+    } else if (key === 'password') {
+      if (!v.password) return '비밀번호를 입력해 주세요.';
+      if (charLength(v.password) < PASSWORD_MIN) return `비밀번호는 ${PASSWORD_MIN}자 이상이어야 해요.`;
+      if (new TextEncoder().encode(v.password).length > PASSWORD_MAX_BYTES) return '비밀번호가 너무 길어요.';
+    } else if (key === 'password2') {
+      if (!v.password2) return '비밀번호를 한 번 더 입력해 주세요.';
+      if (v.password2 !== v.password) return '비밀번호가 서로 달라요.';
+    }
+    return '';
+  }
+
+  function showSignupError(key, message) {
+    su[key].error.textContent = message;
+    if (message) su[key].input.setAttribute('aria-invalid', 'true');
+    else su[key].input.removeAttribute('aria-invalid');
+  }
+
+  function updateNicknameCount() {
+    const n = charLength(su.nickname.input.value.trim());
+    su.nickname.count.textContent = `${n}/${NICKNAME_MAX}`;
+    su.nickname.count.classList.toggle('over', n > NICKNAME_MAX);
+  }
+
+  function setSignupStatus(message, isError = false) {
+    signupStatus.textContent = message;
+    signupStatus.classList.toggle('is-error', isError);
+  }
+
+  // 이미 오류가 표시된 칸은 고치는 즉시 다시 검사한다 (비밀번호를 고치면 확인 칸도 함께)
+  for (const key of signupKeys) {
+    su[key].input.addEventListener('input', () => {
+      if (key === 'nickname') updateNicknameCount();
+      const v = readSignup();
+      for (const k of signupKeys) {
+        if (su[k].input.getAttribute('aria-invalid') === 'true') showSignupError(k, validateSignupField(k, v));
+      }
+    });
+  }
+
+  async function signUp({ email, password, nickname }) {
+    // 확인 메일의 링크가 이 사이트로 돌아오게 한다 (Supabase Auth 설정의 Redirect URLs에 있어야 적용된다)
+    const redirect = /^https?:$/.test(location.protocol) ? `?redirect_to=${encodeURIComponent(location.origin)}` : '';
+    // 닉네임은 사용자 정보(user_metadata)에 담긴다
+    const body = await authFetch(`signup${redirect}`, { body: { email, password, data: { nickname } } });
+    // 토큰(access_token)이 오면 메일 확인 없이 바로 가입된 것이다. 메일 확인이 필요하면 세션이 없다.
+    return body.access_token ? sessionFromAuth(body) : null;
+  }
+
+  function signupErrorMessage(err) {
+    const code = err.code || '';
+    if (code === 'user_already_exists' || code === 'email_exists') return '이미 가입된 이메일이에요.';
+    if (code === 'weak_password') return '비밀번호가 너무 쉬워요. 더 길고 복잡하게 만들어 주세요.';
+    if (code === 'validation_failed' || code === 'email_address_invalid') return '이메일이나 비밀번호 형식을 확인해 주세요.';
+    if (code === 'email_address_not_authorized') return '이 이메일로는 확인 메일을 보낼 수 없어요. 다른 이메일로 시도해 주세요.';
+    if (code === 'email_provider_disabled' || code === 'signup_disabled') return '지금은 회원가입을 받지 않아요.';
+    if (err.status === 429 || code.startsWith('over_')) return '요청이 너무 많아요. 잠시 후 다시 시도해 주세요.';
+    return '가입하지 못했어요. 잠시 후 다시 시도해 주세요.';
+  }
+
+  function showSignupDone(email, confirmed) {
+    $('signup-fields').hidden = true;
+    $('signup-done').hidden = false;
+    $('signup-done-text').textContent = confirmed
+      ? '가입이 끝났어요. 바로 로그인됐어요.'
+      : `${email}로 확인 메일을 보냈어요. 메일의 링크를 눌러 가입을 마쳐 주세요. 메일이 안 보이면 스팸함도 확인해 주세요.`;
+    signupForm.reset(); // 비밀번호를 화면에서 바로 지운다
+    $('signup-done-btn').focus();
+  }
+
+  let signupSeq = 0; // 창을 닫았다 다시 열어도 지난 요청의 결과가 화면을 건드리지 않게 한다
+
+  function openSignup() {
+    signupSeq++;
+    signupForm.reset();
+    for (const key of signupKeys) showSignupError(key, '');
+    updateNicknameCount();
+    setSignupStatus('');
+    $('signup-fields').hidden = false;
+    $('signup-done').hidden = true;
+    signupSubmit.disabled = false;
+    signupSubmit.textContent = '가입하기';
+    signupDialog.showModal();
+    su.email.input.focus();
+  }
+
+  // 닫을 때는 입력한 비밀번호를 바로 지우고, 진행 중이던 요청의 결과는 버린다
+  function closeSignup() {
+    signupDialog.close();
+    signupSeq++;
+    signupForm.reset();
+  }
+
+  $('signup-open').addEventListener('click', openSignup);
+  $('signup-close').addEventListener('click', closeSignup);
+  $('signup-cancel').addEventListener('click', closeSignup);
+  $('signup-done-btn').addEventListener('click', closeSignup);
+  signupDialog.addEventListener('click', (event) => { if (event.target === signupDialog) closeSignup(); }); // 바깥을 누르면 닫힘
+  // Esc 키로 닫힌 경우. close 이벤트는 늦게 올 수 있어서, 그 사이 다시 열렸으면 건드리지 않는다.
+  signupDialog.addEventListener('close', () => {
+    if (signupDialog.open) return;
+    signupSeq++;
+    signupForm.reset();
+  });
+
+  signupForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (signupSubmit.disabled) return;
+    const values = readSignup();
+
+    let firstInvalid = null;
+    for (const key of signupKeys) {
+      const message = validateSignupField(key, values);
+      showSignupError(key, message);
+      if (message && !firstInvalid) firstInvalid = su[key].input;
+    }
+    if (firstInvalid) {
+      setSignupStatus('입력한 내용을 확인해 주세요.', true);
+      firstInvalid.focus();
+      return;
+    }
+
+    const seq = ++signupSeq;
+    signupSubmit.disabled = true;
+    signupSubmit.textContent = '가입 중…';
+    setSignupStatus('');
+    try {
+      const newSession = await signUp(values);
+      if (seq !== signupSeq) return;
+      if (newSession) {
+        setSession(newSession);
+        updateAuthView();
+        refresh();
+      }
+      showSignupDone(values.email, Boolean(newSession));
+    } catch (err) {
+      if (seq !== signupSeq) return;
+      setSignupStatus(signupErrorMessage(err), true);
+    } finally {
+      if (seq === signupSeq) {
+        signupSubmit.disabled = false;
+        signupSubmit.textContent = '가입하기';
+      }
+    }
+  });
+
+  // ---------- 로그인·로그아웃 ----------
+  const loginDialog = $('login-dialog');
+  const loginForm = $('login-form');
+  const loginSubmit = $('login-submit');
+  const loginStatus = $('login-status');
+  const loginKeys = ['email', 'password'];
+  const li = {};
+  for (const key of loginKeys) li[key] = { input: $('li-' + key), error: $('li-' + key + '-error') };
+
+  function readLogin() {
+    return { email: li.email.input.value.trim(), password: li.password.input.value };
+  }
+
+  function validateLoginField(key, v) {
+    if (key === 'email') {
+      if (!v.email) return '이메일을 입력해 주세요.';
+      if (v.email.length > 254 || !EMAIL_PATTERN.test(v.email)) return '이메일 형식을 확인해 주세요.';
+      return '';
+    }
+    return v.password ? '' : '비밀번호를 입력해 주세요.';
+  }
+
+  function showLoginError(key, message) {
+    li[key].error.textContent = message;
+    if (message) li[key].input.setAttribute('aria-invalid', 'true');
+    else li[key].input.removeAttribute('aria-invalid');
+  }
+
+  function setLoginStatus(message, isError = false) {
+    loginStatus.textContent = message;
+    loginStatus.classList.toggle('is-error', isError);
+  }
+
+  for (const key of loginKeys) {
+    li[key].input.addEventListener('input', () => {
+      if (li[key].input.getAttribute('aria-invalid') === 'true') showLoginError(key, validateLoginField(key, readLogin()));
+    });
+  }
+
+  async function logIn({ email, password }) {
+    const body = await authFetch('token?grant_type=password', { body: { email, password } });
+    return sessionFromAuth(body);
+  }
+
+  function loginErrorMessage(err) {
+    const code = err.code || '';
+    if (code === 'invalid_credentials') return '이메일이나 비밀번호가 맞지 않아요.';
+    if (code === 'email_not_confirmed') return '메일 확인이 아직 안 됐어요. 받은 메일의 링크를 눌러 주세요.';
+    if (code === 'validation_failed') return '이메일이나 비밀번호 형식을 확인해 주세요.';
+    if (code === 'user_banned') return '지금은 이 계정을 쓸 수 없어요.';
+    if (err.status === 429 || code.startsWith('over_')) return '요청이 너무 많아요. 잠시 후 다시 시도해 주세요.';
+    return '로그인하지 못했어요. 잠시 후 다시 시도해 주세요.';
+  }
+
+  let loginSeq = 0; // 창을 닫았다 다시 열어도 지난 요청의 결과가 화면을 건드리지 않게 한다
+
+  function openLogin() {
+    loginSeq++;
+    loginForm.reset();
+    for (const key of loginKeys) showLoginError(key, '');
+    setLoginStatus('');
+    loginSubmit.disabled = false;
+    loginSubmit.textContent = '로그인';
+    loginDialog.showModal();
+    li.email.input.focus();
+  }
+
+  // 닫을 때는 입력한 비밀번호를 바로 지우고, 진행 중이던 요청의 결과는 버린다
+  function closeLogin() {
+    loginDialog.close();
+    loginSeq++;
+    loginForm.reset();
+  }
+
+  $('login-open').addEventListener('click', openLogin);
+  $('gate-login').addEventListener('click', openLogin);
+  $('gate-signup').addEventListener('click', openSignup);
+  $('login-close').addEventListener('click', closeLogin);
+  $('login-cancel').addEventListener('click', closeLogin);
+  $('login-to-signup').addEventListener('click', () => { closeLogin(); openSignup(); });
+  $('signup-to-login').addEventListener('click', () => { closeSignup(); openLogin(); });
+  loginDialog.addEventListener('click', (event) => { if (event.target === loginDialog) closeLogin(); });
+  loginDialog.addEventListener('close', () => { // Esc 키로 닫힌 경우
+    if (loginDialog.open) return;
+    loginSeq++;
+    loginForm.reset();
+  });
+
+  loginForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (loginSubmit.disabled) return;
+    const values = readLogin();
+
+    let firstInvalid = null;
+    for (const key of loginKeys) {
+      const message = validateLoginField(key, values);
+      showLoginError(key, message);
+      if (message && !firstInvalid) firstInvalid = li[key].input;
+    }
+    if (firstInvalid) {
+      setLoginStatus('입력한 내용을 확인해 주세요.', true);
+      firstInvalid.focus();
+      return;
+    }
+
+    const seq = ++loginSeq;
+    loginSubmit.disabled = true;
+    loginSubmit.textContent = '로그인 중…';
+    setLoginStatus('');
+    try {
+      const newSession = await logIn(values);
+      if (seq !== loginSeq) return;
+      setSession(newSession);
+      closeLogin();
+      updateAuthView();
+      refresh();
+    } catch (err) {
+      if (seq !== loginSeq) return;
+      setLoginStatus(loginErrorMessage(err), true);
+    } finally {
+      if (seq === loginSeq) {
+        loginSubmit.disabled = false;
+        loginSubmit.textContent = '로그인';
+      }
+    }
+  });
+
+  async function logOut() {
+    const token = session && session.access_token;
+    signOutLocal(); // 화면은 바로 로그인 전으로 돌아간다
+    if (!token) return;
+    try {
+      await authFetch('logout?scope=local', { token }); // 이 브라우저의 세션만 끝낸다
+    } catch { /* 서버에서 못 지워도 이 브라우저에서는 이미 로그아웃됐다 */ }
+  }
+
+  $('logout-btn').addEventListener('click', logOut);
+
+  // ---------- 로그인 여부에 따른 화면 ----------
+  const GATE_DEFAULT = '로그인하면 동네 사람들이 올린 맛집을 보고, 내가 가본 맛집을 추가할 수 있어요.';
+
+  function updateAuthView(note = '') {
+    const signedIn = Boolean(session);
+    $('auth-in').hidden = !signedIn;
+    $('auth-out').hidden = signedIn;
+    $('app').hidden = !signedIn;
+    $('gate').hidden = signedIn;
+    if (signedIn) {
+      $('user-chip').textContent = `${session.nickname || session.email}님`;
+      return;
+    }
+    $('gate-sub').textContent = note || GATE_DEFAULT;
+    // 로그인 전에는 맛집 정보가 화면에 남지 않게 비운다
+    refreshSeq++; // 진행 중이던 목록 요청의 결과는 버린다
+    list.replaceChildren();
+    totalEl.textContent = '';
+    emptyMsg.hidden = true;
+    loadingEl.hidden = false;
+    form.reset();
+    for (const key of Object.keys(fields)) { showFieldError(key, ''); updateCount(key); }
+    setStatus('');
+    setBanner('');
+  }
+
+  // 다른 탭에서 로그인·로그아웃하면 이 탭도 맞춘다
+  window.addEventListener('storage', (event) => {
+    if (event.key !== SESSION_KEY) return;
+    session = loadSavedSession();
+    updateAuthView();
+    if (session) refresh();
+  });
+
+  // ---------- 시작 ----------
+  session = loadSavedSession();
+  updateAuthView();
+  if (session) refresh();
 })();
 </script>
 </body>
