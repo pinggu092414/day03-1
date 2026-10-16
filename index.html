@@ -105,6 +105,9 @@
   .btn-primary { min-width: 120px; background: var(--accent); color: #fff; }
   .btn-primary:hover { background: var(--accent-hover); }
   .btn-primary:disabled { background: #e7a98c; cursor: progress; }
+  .btn-secondary { background: #fff; border-color: var(--accent); color: var(--accent); }
+  .btn-secondary:hover { background: var(--accent-soft); }
+  .btn-secondary:disabled { opacity: 0.6; cursor: progress; }
 
   .status { min-height: 1.5rem; margin: 10px 0 0; font-size: 0.9375rem; color: var(--accent); text-align: right; }
   .status.is-error { color: var(--danger); }
@@ -194,7 +197,7 @@
   :focus-visible { outline: 3px solid var(--star); outline-offset: 2px; }
 
   @media (max-width: 480px) {
-    .actions .btn-primary { flex: 1; }
+    .actions .btn { flex: 1; padding: 0 12px; }
   }
 </style>
 </head>
@@ -246,6 +249,7 @@
       </div>
 
       <div class="actions">
+        <button type="button" id="ai-btn" class="btn btn-secondary">AI 한줄평 추천</button>
         <button type="submit" id="submit-btn" class="btn btn-primary">추가</button>
       </div>
       <p id="form-status" class="status" role="status"></p>
@@ -310,6 +314,31 @@
 
   async function removeRestaurant(id) {
     await api(`restaurants?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' });
+  }
+
+  // ---------- AI 한줄평 (Edge Function suggest-review) ----------
+  // 함수가 모델 3개를 차례로 시도할 수 있어서 넉넉히 기다린다. AI 키는 함수 쪽 Secrets에만 있다.
+  const AI_TIMEOUT_MS = 45000;
+  const AI_MAX_CHARS = 40;
+
+  async function suggestReview({ name, menu, rating }) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/suggest-review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, menu, rating: rating || undefined }), // 별점을 안 골랐으면 보내지 않는다
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error(`suggest-review ${res.status}`);
+      const data = await res.json();
+      const text = typeof data.text === 'string' ? data.text.trim() : '';
+      if (!text) throw new Error('empty suggestion');
+      return Array.from(text).slice(0, AI_MAX_CHARS).join('');
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   // ---------- 화면 요소 ----------
@@ -510,6 +539,41 @@
     for (const key of Object.keys(fields)) { showFieldError(key, ''); updateCount(key); }
     setStatus('맛집을 추가했어요.');
     await refresh();
+  });
+
+  // ---------- AI 한줄평 추천 ----------
+  const aiBtn = $('ai-btn');
+  aiBtn.addEventListener('click', async () => {
+    if (aiBtn.disabled) return;
+    const values = readForm();
+
+    // 이름이 비었거나 글자 수를 넘으면 요청하지 않는다
+    const nameError = validateField('name', values);
+    const menuError = validateField('menu', values);
+    showFieldError('name', nameError);
+    showFieldError('menu', menuError);
+    if (nameError || menuError) {
+      setStatus(nameError ? '식당 이름을 먼저 입력해 주세요.' : menuError, true);
+      (nameError ? fields.name : fields.menu).input.focus();
+      return;
+    }
+
+    aiBtn.disabled = true;
+    aiBtn.textContent = '추천 중…';
+    setStatus('');
+    try {
+      const text = await suggestReview(values);
+      if (readForm().name !== values.name) return; // 기다리는 사이 입력이 바뀌었으면 결과를 쓰지 않는다
+      fields.review.input.value = text; // 저장은 하지 않는다. 고친 뒤 [추가]를 눌러야 저장된다
+      showFieldError('review', '');
+      updateCount('review');
+      setStatus('한줄평을 추천했어요. 고쳐서 추가할 수 있어요.');
+    } catch {
+      setStatus('지금은 추천을 받을 수 없어요. 직접 적어 주세요.', true);
+    } finally {
+      aiBtn.disabled = false;
+      aiBtn.textContent = 'AI 한줄평 추천';
+    }
   });
 
   refresh();
